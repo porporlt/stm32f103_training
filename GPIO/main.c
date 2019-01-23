@@ -17,7 +17,7 @@ static inline void Delay(uint32_t nCnt_1us)
 
 int main(void)
 {
-
+	/* Sawasdee OH */
 
 	GPIO_InitTypeDef GPIO_InitStructure;
 
