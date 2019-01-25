@@ -59,7 +59,7 @@ int main(void)
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = 14400-1;
+	TIM_TimeBaseStructure.TIM_Period = 720-1;
 	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(1-1);
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -71,7 +71,7 @@ int main(void)
 	TIM_OCInitStruct.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStruct.TIM_OutputState = TIM_OutputState_Enable;
 	//TIM_OCInitStruct.TIM_OutputNState = TIM_OutputNState_Disable;
-	TIM_OCInitStruct.TIM_Pulse = 2160-1;
+	TIM_OCInitStruct.TIM_Pulse = 360-1;
 	TIM_OCInitStruct.TIM_OCPolarity = TIM_OCPolarity_High;
 	//TIM_OCInitStruct.TIM_OCNPolarity = TIM_OCPolarity_High;
 	//TIM_OCInitStruct.TIM_OCIdleState = TIM_OCIdleState_Reset;
@@ -80,29 +80,44 @@ int main(void)
 	TIM_OC2Init(TIM2, &TIM_OCInitStruct);
 	TIM_Cmd(TIM2, ENABLE);
 
-	uint16_t cnt = 14400-1;
+	uint16_t cnt = 216-1;
+	// int i;
+	// int j;
 
 	//int timerValue = TIM_GetCounter(TIM2);
 
 	while (1) {
 
 		GPIO_SetBits(GPIOC,GPIO_Pin_13);
-
 		/* Set timer CCR2 register (pulse) directly */
 		TIM2 -> CCR2 = cnt;
-		cnt-- ;
-		if(cnt == 0){
-			//while(cnt > 0){
-			//	cnt-- ;
-			//	Delay_1us(100);
-			//}
-			cnt = 14400-1;
+		Delay_1us(50000);
+		cnt = cnt - 18 ;
+		if(cnt == (36-1)){
+			while(cnt < (216-1))
+			{
+				Delay_1us(50000);
+				cnt = cnt + 18 ;
+				TIM2 -> CCR2 = cnt;
+			}
 		}
-		
+		// for(i = 1 ; i <= 11 ; i++ )
+		// {
+		// 	Delay_1us(50000);
+		// 	cnt = cnt - 18 ;
+		// }
+	
+		// Delay_1us(50000);
+	
+		// for(j = 1 ; j <= 11 ; j++ )
+		// {
+		// 	Delay_1us(50000);
+		// 	cnt = cnt + 18 ;
+		// }
 
 		//Delay_1us(100000);
 		//GPIO_ResetBits(GPIOC,GPIO_Pin_13);
-		Delay_1us(100);
+		// Delay_1us(50000);
 
 	}
 
