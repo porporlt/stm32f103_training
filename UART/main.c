@@ -39,7 +39,7 @@ void init_usart1()
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* Configure the USART1 */
-	USART_InitStructure.USART_BaudRate = 19200;
+	USART_InitStructure.USART_BaudRate = 115200;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -62,14 +62,33 @@ void send_byte(uint8_t b)
 
 int main(void)
 {
+	// LED Pin
+	GPIO_InitTypeDef GPIO_InitStructure;
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+	//Configure LED Pin
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Mode = 	GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Pin = 	GPIO_Pin_13; 	
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+
 	init_usart1();
 	char b;
+	
+
+
+
 	while (1) {
 
         	while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
         	b =  USART_ReceiveData(USART1);
         	
-        	send_byte(b);
+        	if(b == 97){ //97 = a
+        		GPIO_SetBits(GPIOC,GPIO_Pin_13);
+        	}
+        	else if (b == 98){ //98 = b
+        		GPIO_ResetBits(GPIOC,GPIO_Pin_13);
+        	}
+        	// send_byte(b);
 		
 	}
 }
