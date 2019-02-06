@@ -3,6 +3,7 @@
 void init_usart1(void);
 void send_byte(uint8_t b);
 
+void USART1_IRQHandler(void);
 static inline void Delay_1us(uint32_t nCnt_1us)
 {
   volatile uint32_t nCnt;
@@ -39,18 +40,39 @@ void init_usart1()
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* Configure the USART1 */
-	USART_InitStructure.USART_BaudRate = 19200;
+	USART_InitStructure.USART_BaudRate = 115200;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(USART1, &USART_InitStructure);
+
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	/* Enable transmit and receive interrupts for the USART1. */
+	USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
 	USART_Cmd(USART1, ENABLE);
 
-
-
 }
+
+void USART1_IRQHandler(void)
+{
+    char b;
+    if(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == SET) {
+
+          b =  USART_ReceiveData(USART1);
+          send_byte(b);
+    }
+}
+
 void send_byte(uint8_t b)
 {
 	/* Send one byte */
@@ -66,10 +88,10 @@ int main(void)
 	char b;
 	while (1) {
 
-        	while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
-        	b =  USART_ReceiveData(USART1);
+        	// while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
+        	// b =  USART_ReceiveData(USART1);
         	
-        	send_byte(b);
+        	// send_byte(b);
 		
 	}
 }
