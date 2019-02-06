@@ -29,7 +29,7 @@ void init_usart1()
 
 	/* Configure USART1 Rx pin as floating input. */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* Configure USART1 Tx as alternate function push-pull. */
@@ -39,7 +39,7 @@ void init_usart1()
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	/* Configure the USART1 */
-	USART_InitStructure.USART_BaudRate = 9600;
+	USART_InitStructure.USART_BaudRate = 921600;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
