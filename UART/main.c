@@ -2,6 +2,7 @@
 #include "stm32f10x_conf.h"
 void init_usart1(void);
 void send_byte(uint8_t b);
+void usart_puts(char* s);
 
 void USART1_IRQHandler(void);
 static inline void Delay_1us(uint32_t nCnt_1us)
@@ -69,7 +70,9 @@ void USART1_IRQHandler(void)
     if(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == SET) {
 
           b =  USART_ReceiveData(USART1);
-          send_byte(b);
+
+          /* Uncomment this to loopback */
+          // send_byte(b);
     }
 }
 
@@ -82,16 +85,23 @@ void send_byte(uint8_t b)
 	while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
 }
 
+
+void usart_puts(char* s)
+{
+    while(*s) {
+    	send_byte(*s);
+        s++;
+    }
+}
+
+
 int main(void)
 {
 	init_usart1();
 	char b;
 	while (1) {
 
-        	// while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
-        	// b =  USART_ReceiveData(USART1);
-        	
-        	// send_byte(b);
+			usart_puts("avilon_test\r\n");
 		
 	}
 }
