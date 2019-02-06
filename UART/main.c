@@ -2,6 +2,15 @@
 #include "stm32f10x_conf.h"
 void init_usart1(void);
 void send_byte(uint8_t b);
+void usart_puts(char* s);
+
+void USART1_IRQHandler(void);
+
+char first_num[2];
+char secound_num[2];
+uint8_t cnt= 0; 
+uint8_t stat= 0;
+
 
 static inline void Delay_1us(uint32_t nCnt_1us)
 {
@@ -46,11 +55,49 @@ void init_usart1()
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(USART1, &USART_InitStructure);
+
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+	/* Enable transmit and receive interrupts for the USART1. */
+	USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
 	USART_Cmd(USART1, ENABLE);
 
-
-
 }
+
+void USART1_IRQHandler(void)
+{
+    char b;
+    if(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == SET) {
+
+          b =  USART_ReceiveData(USART1);
+          
+          if(stat == 0 && b == 'A'){
+          	stat = 1;
+          }
+
+
+          else if (stat == 1){
+          	
+          	first_num[cnt++] = b;
+          	if(cnt == 3 ){
+          		cnt = 0;
+        	}
+          }
+
+
+
+          /* Uncomment this to loopback */
+          // send_byte(b);
+	}
+}
+
 void send_byte(uint8_t b)
 {
 	/* Send one byte */
@@ -59,6 +106,16 @@ void send_byte(uint8_t b)
 	/* Loop until USART2 DR register is empty */
 	while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
 }
+
+
+void usart_puts(char* s)
+{
+    while(*s) {
+    	send_byte(*s);
+        s++;
+    }
+}
+
 
 int main(void)
 {
@@ -70,24 +127,29 @@ int main(void)
 	GPIO_InitStructure.GPIO_Mode = 	GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin = 	GPIO_Pin_13; 	
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
-
 	init_usart1();
-	char b;
+	// char b;
 	
 
 
 
 	while (1) {
 
-        	while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
-        	b =  USART_ReceiveData(USART1);
+
+			usart_puts("avilon_test\r\n");
+			usart_puts(&first_num[0]);
+			usart_puts("\n");
         	
-        	if(b == 97){ //97 = a
-        		GPIO_SetBits(GPIOC,GPIO_Pin_13);
-        	}
-        	else if (b == 98){ //98 = b
-        		GPIO_ResetBits(GPIOC,GPIO_Pin_13);
-        	}
+
+        	// while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
+        	// b =  USART_ReceiveData(USART1);
+        	
+        	// if(b == 97){ //97 = a
+        		// GPIO_SetBits(GPIOC,GPIO_Pin_13);
+        	// }
+        	// else if (b == 98){ //98 = b
+        		// GPIO_ResetBits(GPIOC,GPIO_Pin_13);
+        	// }
         	// send_byte(b);
 		
 	}
