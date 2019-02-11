@@ -1,5 +1,8 @@
 #include "stm32f10x.h"
 #include "stm32f10x_conf.h"
+#include <stdio.h>
+#include <stdlib.h>
+
 void init_usart1(void);
 void send_byte(uint8_t b);
 void usart_puts(char* s);
@@ -7,10 +10,10 @@ void usart_puts(char* s);
 void USART1_IRQHandler(void);
 
 char first_num[2];
-char secound_num[2];
-uint8_t cnt= 0; 
+char second_num[2];
+uint8_t cnt= 0;  
 uint8_t stat= 0;
-
+char out[10];
 
 static inline void Delay_1us(uint32_t nCnt_1us)
 {
@@ -85,14 +88,46 @@ void USART1_IRQHandler(void)
 
           else if (stat == 1){
           	
-          	first_num[cnt++] = b;
-          	if(cnt == 3 ){
+			if(b >= '0' && b <= '9'){
+          		first_num[cnt++] = b;
+          	}
+          	else
+          		stat = 0;
+
+          	if(cnt == 2 ){
           		cnt = 0;
+          		stat = 2;
         	}
           }
 
+          else if (stat == 2){
+          	if(b == '+'){
+          		stat = 3;
+          	}
+          	else
+          		stat = 0;
+          }
 
+           else if (stat == 3){
 
+          	if(b >= '0' && b <= '9'){
+          		second_num[cnt++] = b;
+          	}
+          	else
+          		stat = 0;
+
+          	if(cnt == 2 ){
+          		cnt = 0;
+          		stat = 4;
+            }
+		  }
+          else if (stat == 4){
+          	if(b == 'B'){
+          		stat = 5;
+          	}
+          	else
+          		stat = 0;
+          }
           /* Uncomment this to loopback */
           // send_byte(b);
 	}
@@ -135,10 +170,28 @@ int main(void)
 
 	while (1) {
 
+			sprintf(out, "status is : %d", stat);
+		    usart_puts(out);
+		    usart_puts("\n");
+		    Delay_1us(100000);
+		    if (stat == 5){
+		    	int i;
+		    	char str[10];
+		    	i = atoi(&first_num[0])+atoi(&second_num[0]);
+  				sprintf(str, "%d", i);
+		    	usart_puts(&str[0]);
+		    	usart_puts("\n");
+		    	usart_puts(&first_num[0]);
+		    	usart_puts("\n");
+		    	send_byte(second_num[0]);
+		    	send_byte(second_num[1]);
+		    	usart_puts("\n");
+		    	stat = 0;
+		    }
 
-			usart_puts("avilon_test\r\n");
-			usart_puts(&first_num[0]);
-			usart_puts("\n");
+			// usart_puts("avilon_test\r\n");
+			// usart_puts(&first_num[0]);
+			// usart_puts("\n");
         	
 
         	// while(USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET);
