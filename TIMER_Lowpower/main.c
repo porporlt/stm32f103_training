@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void init_Tim2(void);
 void init_usart1(void);
 void RTC_Init(void);
 void send_byte(uint8_t b);
@@ -44,18 +45,29 @@ void RTC_Init()
 	{	
 		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
 		PWR_BackupAccessCmd(ENABLE);
+		
 
-		if ((RCC->BDCR & RCC_BDCR_RTCEN) != RCC_BDCR_RTCEN)
+		// Disable RTC && Reset counter
+		RCC_RTCCLKCmd(DISABLE);
+		// RCC_BackupResetCmd(ENABLE); 
+		// RCC_BackupResetCmd(DISABLE);
+
+		if ((RCC->BDCR & RCC_BDCR_RTCEN) != RCC_BDCR_RTCEN) //RTCEN:RTC clock enable
 		{
 		
-		RCC_BackupResetCmd(ENABLE);
+		RCC_BackupResetCmd(ENABLE); 
 		RCC_BackupResetCmd(DISABLE);
+		//BDRST: Backup domain software reset 
+		//Set and cleared by software
+		//0: Reset not activated
+		//1: Resets the entire Backup domain
 
-		RCC_LSEConfig(RCC_LSE_ON);
-		while ((RCC->BDCR & RCC_BDCR_LSERDY) != RCC_BDCR_LSERDY) {}
+
+		RCC_LSEConfig(RCC_LSE_ON);// 32.768KHz
+		while ((RCC->BDCR & RCC_BDCR_LSERDY) != RCC_BDCR_LSERDY) {} //LSERDY:External low-speed oscillator ready
 		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
 
-		RTC_SetPrescaler(0x7FFF); 
+		RTC_SetPrescaler(0x7FFF); // 1HZ set (32768/32768)
 
 		RCC_RTCCLKCmd(ENABLE);
 		RTC_WaitForSynchro();
@@ -96,6 +108,7 @@ void init_usart1()
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0; // set interrupt group
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -107,6 +120,47 @@ void init_usart1()
 	USART_Cmd(USART1, ENABLE);
 
 }
+
+void init_Tim2(){
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	/* Enable the TIM3 global Interrupt */
+	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0; // set interrupt group
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+
+	NVIC_Init(&NVIC_InitStructure);
+
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+	/* Time base configuration */
+	TIM_TimeBaseStructure.TIM_Period = 10000-1;
+	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(7200-1);
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+
+	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+
+	// TIM_OCInitTypeDef TIM_OCInitStruct;
+
+	// TIM_OCInitStruct.TIM_OCMode = TIM_OCMode_PWM1;
+	// TIM_OCInitStruct.TIM_OutputState = TIM_OutputState_Enable;
+	// TIM_OCInitStruct.TIM_OutputNState = TIM_OutputNState_Disable;
+	// TIM_OCInitStruct.TIM_Pulse = 50-1;
+	// TIM_OCInitStruct.TIM_OCPolarity = TIM_OCPolarity_High;
+	// TIM_OCInitStruct.TIM_OCNPolarity = TIM_OCPolarity_High;
+	// TIM_OCInitStruct.TIM_OCIdleState = TIM_OCIdleState_Reset;
+	// TIM_OCInitStruct.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
+
+	// TIM_OC2Init(TIM2, &TIM_OCInitStruct);
+	TIM_ITConfig( TIM2, TIM_IT_Update, ENABLE); 
+	TIM_Cmd(TIM2, ENABLE);
+
+}
+
 
 void send_byte(uint8_t b)
 {
@@ -141,8 +195,6 @@ int main(void)
 	GPIO_InitStructure.GPIO_Pin = 	GPIO_Pin_13; 	
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-
-
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
 	//Configure LED Pin
@@ -150,7 +202,6 @@ int main(void)
 	GPIO_InitStructure.GPIO_Mode = 	GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin = 	GPIO_Pin_1; 	
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-
 	//Possible output modes are:
 	// GPIO_Mode_Out_OD        ;output open drain
 	// GPIO_Mode_Out_PP        ;output push-pull
@@ -160,49 +211,13 @@ int main(void)
 	// Refer to section 3 on a useful general IO pin configuration function.
 
 
-
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-	/* Enable the TIM3 global Interrupt */
-	NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0; // set interrupt group
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-
-	NVIC_Init(&NVIC_InitStructure);
-
-	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
-	/* Time base configuration */
-	TIM_TimeBaseStructure.TIM_Period = 100-1;
-	TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)(72-1);
-	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-
-	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
-
-	// TIM_OCInitTypeDef TIM_OCInitStruct;
-
-	// TIM_OCInitStruct.TIM_OCMode = TIM_OCMode_PWM1;
-	// TIM_OCInitStruct.TIM_OutputState = TIM_OutputState_Enable;
-	// TIM_OCInitStruct.TIM_OutputNState = TIM_OutputNState_Disable;
-	// TIM_OCInitStruct.TIM_Pulse = 50-1;
-	// TIM_OCInitStruct.TIM_OCPolarity = TIM_OCPolarity_High;
-	// TIM_OCInitStruct.TIM_OCNPolarity = TIM_OCPolarity_High;
-	// TIM_OCInitStruct.TIM_OCIdleState = TIM_OCIdleState_Reset;
-	// TIM_OCInitStruct.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
-
-	// TIM_OC2Init(TIM2, &TIM_OCInitStruct);
-	TIM_ITConfig( TIM2, TIM_IT_Update, ENABLE); 
-	TIM_Cmd(TIM2, ENABLE);
-
 	// RCC_SYSCLKConfig(RCC_SYSCLKSource_HSI);
 	// RCC_HCLKConfig(RCC_SYSCLK_Div512);	
 
 	uint32_t RTC_Counter = 0;
 	char buffer[80] = {'\0'};
 
+	init_Tim2();
 	init_usart1();
     RTC_Init();
     
