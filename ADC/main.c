@@ -1,5 +1,9 @@
 #include "stm32f10x.h"
 #include "stm32f10x_conf.h"
+#include <stdio.h>
+#include <stdlib.h>
+void send_byte(uint8_t b);
+void usart_puts(char* s);
 
 static inline void Delay_1us(uint32_t nCnt_1us)
 {
@@ -26,6 +30,72 @@ static inline void Delay(uint32_t nCnt_1us)
 /* Store sampled value here  */
 volatile uint32_t ADCConvertedValue;
 
+void init_usart1(void);
+void init_usart1()
+{
+
+  USART_InitTypeDef USART_InitStructure;
+  GPIO_InitTypeDef GPIO_InitStructure;
+
+  /* Enable peripheral clocks. */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+  /* Configure USART1 Rx pin as floating input. */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  /* Configure USART1 Tx as alternate function push-pull. */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+  /* Configure the USART1 */
+  USART_InitStructure.USART_BaudRate = 115200;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+  USART_InitStructure.USART_Parity = USART_Parity_No;
+  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+  USART_Init(USART1, &USART_InitStructure);
+
+  NVIC_InitTypeDef NVIC_InitStructure;
+
+  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1; // set interrupt group
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+
+  /* Enable transmit and receive interrupts for the USART1. */
+  USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+  // USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+
+  USART_Cmd(USART1, ENABLE);
+
+}
+
+void send_byte(uint8_t b)
+{
+  /* Send one byte */
+  USART_SendData(USART1, b);
+
+  /* Loop until USART2 DR register is empty */
+  while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+}
+
+
+void usart_puts(char* s)
+{
+    while(*s) {
+      send_byte(*s);
+        s++;
+    }
+}
+
+
 void init_adc(void);
 void init_adc()
 {
@@ -46,7 +116,7 @@ void init_adc()
 
   //Configure LED Pin
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = 	GPIO_Mode_AIN;
+  GPIO_InitStructure.GPIO_Mode = 	GPIO_Mode_AIN;  //AIN =  analog input
   GPIO_InitStructure.GPIO_Pin = 	GPIO_Pin_0; 	
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -103,25 +173,30 @@ void init_adc()
 
 }
 
-int16_t temp_output = 0;
+int16_t adc_value = 0;
 int main(void)
 {
-
 	GPIO_InitTypeDef GPIO_InitStructure;
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 
 	//Configure LED Pin
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Mode = 	GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Pin = 	GPIO_Pin_13; 	
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 	init_adc();
+  init_usart1();
+  char buffer[80] = {'\0'};
+
 	while (1) {
 
 		Delay_1us(100000);
 		gpio_toggle(GPIOC,GPIO_Pin_13);
+    adc_value = ADC_GetConversionValue(ADC1);
+    sprintf(buffer, "\r\n\r\nADC_Value: %d\r\n", (int)adc_value);
+    usart_puts(buffer);
 
 	}
 }
